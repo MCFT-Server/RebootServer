@@ -1,16 +1,30 @@
 package rebootserver;
 
-import cn.nukkit.Player;
+import java.util.LinkedHashMap;
+
 import cn.nukkit.Server;
 import cn.nukkit.plugin.*;
 import cn.nukkit.scheduler.*;
+import cn.nukkit.utils.Config;
+import cn.nukkit.utils.ConfigSection;
 import cn.nukkit.utils.TextFormat;
 
-public class Main extends PluginBase{
+public class Main extends PluginBase {
+	private Config config;
+	
+	@SuppressWarnings("serial")
 	public void onEnable() {
-		getServer().getScheduler().scheduleDelayedTask(new ServerStopLoadTask(this), 20*60*30);
+		getDataFolder().mkdirs();
+		config = new Config(getDataFolder() + "/config.yml", Config.YAML, new ConfigSection(new LinkedHashMap<String, Object>() {
+			{
+				put("restart-minute", 30);
+			}
+		}));
+		
+		getServer().getScheduler().scheduleDelayedTask(new ServerStopLoadTask(this), 20 * 60 * config.getInt("restart-minute"));
 	}
 }
+
 class ServerStopLoadTask extends PluginTask<Main> {
 	protected Main owner;
 	public ServerStopLoadTask(Main owner) {
@@ -19,15 +33,12 @@ class ServerStopLoadTask extends PluginTask<Main> {
 
 	@Override
 	public void onRun(int currentTick) {
-		for (Player player : Server.getInstance().getOnlinePlayers().values()) {
-			for (int i = 0; i < 5; i++) {
-				player.sendMessage(TextFormat.RED + "잠시후 서버가 재부팅 됩니다. 서버가 종료되면 다시 접속해주세요.");
-			}
-		}
-		Server.getInstance().getScheduler().scheduleDelayedTask(new ServerStopTask(getOwner()), 20*5);
+		Server.getInstance().broadcastMessage(TextFormat.RED + "잠시후 서버가 재부팅 됩니다. 서버가 종료되면 다시 접속해주세요.");
+		Server.getInstance().getScheduler().scheduleDelayedTask(new ServerStopTask(getOwner()), 20 * 5);
 	}
 	
 }
+
 class ServerStopTask extends PluginTask<Main> {
 	public ServerStopTask(Main owner) {
 		super(owner);
@@ -35,11 +46,7 @@ class ServerStopTask extends PluginTask<Main> {
 
 	@Override
 	public void onRun(int currentTick) {
-		for (Player player : Server.getInstance().getOnlinePlayers().values()) {
-			for (int i = 0; i< 5; i++) {
-				player.sendMessage(TextFormat.RED + "서버가 재부팅 됩니다.");
-			}
-		}
+			Server.getInstance().broadcastMessage(TextFormat.RED + "서버가 재부팅 됩니다.");
 		Server.getInstance().shutdown();
 	}
 	
